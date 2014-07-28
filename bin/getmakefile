@@ -1,9 +1,0 @@
-#!/usr/bin/env ruby
-
-_lib=File.dirname(__FILE__) + '/../lib'
-$:.unshift(_lib) unless $:.include?(_lib)
-#noinspection RubyResolve
-require 'twc_cms/builder/getmakefile'
-
-# =====================================================================================================================
-exit GetMakefile.new().run()

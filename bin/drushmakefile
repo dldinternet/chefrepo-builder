@@ -1,8 +1,0 @@
-#!/usr/bin/env ruby
-
-_lib=File.dirname(__FILE__) + '/../lib'
-$:.unshift(_lib) unless $:.include?(_lib)
-require 'twc_cms/builder/drushmakefile'
-
-# =====================================================================================================================
-exit DrushMakefile.new().run()
