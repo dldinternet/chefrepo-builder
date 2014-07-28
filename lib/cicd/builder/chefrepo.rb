@@ -27,7 +27,7 @@ module CiCd
       end
       # ---------------------------------------------------------------------------------------------------------------
       def run()
-        $stdout.write("ChefRepoBuilder v#{::VERSION}\n")
+        $stdout.write("ChefRepoBuilder v#{CiCd::Builder::ChefRepo::VERSION}\n")
         @default_options[:env_keys] = %w(
 																			JENKINS_HOME
 																			BUILD_NUMBER

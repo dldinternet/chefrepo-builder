@@ -4,7 +4,7 @@ require File.expand_path('lib/cicd/builder/chefrepo/version', File.dirname(__FIL
 
 Gem::Specification.new do |gem|
   gem.name          = 'chefrepo-builder'
-  gem.version       = CiCd::Builder::VERSION
+  gem.version       = CiCd::Builder::ChefRepo::VERSION
   gem.summary       = 'Jenkins builder task for CI/CD'
   gem.description   = 'Jenkins builder task for CI/CD'
   gem.license       = 'Apachev2'
