@@ -25,6 +25,24 @@ module CiCd
             patch:    PATCH,
         }
       end
+
+      # ---------------------------------------------------------------------------------------------------------------
+      def checkEnvironment()
+        # We fake some of the keys that the will need later ...
+        faked = {}
+        %w(VERSION RELEASE).each do |key|
+          unless ENV.has_key?(key)
+            ENV[key]="faked"
+            faked[key] = true
+          end
+        end
+        ret = super
+        faked.each do |k,v|
+          ENV.delete k
+        end
+        ret
+      end
+
       # ---------------------------------------------------------------------------------------------------------------
       def run()
         $stdout.write("ChefRepoBuilder v#{CiCd::Builder::ChefRepo::VERSION}\n")
@@ -35,10 +53,11 @@ module CiCd
                                       WORKSPACE
 
 																			PROJECT_NAME
-                                      VERSION
-                                      RELEASE
                                       REPO_DIR
                                       REPO_PARTS
+
+                                      VERSION
+                                      RELEASE
 
 																			AWS_S3_BUCKET
 																		)
