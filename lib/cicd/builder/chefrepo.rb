@@ -37,6 +37,8 @@ module CiCd
 																			PROJECT_NAME
                                       VERSION
                                       RELEASE
+                                      REPO_DIR
+                                      REPO_PARTS
 
 																			AWS_S3_BUCKET
 																		)
@@ -82,9 +84,9 @@ module CiCd
         # excludes = excludes.map{ |e| "--exclude=#{@vars[:build_nam]}/#{e}" }.join(' ')
         raise "Not in WORKSPACE?" unless Dir.pwd == ENV['WORKSPACE']
 
-        Dir.chdir 'chef'
-        if Dir.pwd == File.join(ENV['WORKSPACE'], 'chef')
-          cmd = %(tar jcvf #{@vars[:build_pkg]} environments data_bags roles cookbooks vendor-cookbooks 2>&1)
+        Dir.chdir ENV['REPO_DIR']
+        if Dir.pwd == File.join(ENV['WORKSPACE'], ENV['REPO_DIR'])
+          cmd = %(tar jcvf #{@vars[:build_pkg]} #{ENV['REPO_PARTS']} 2>&1)
           @logger.info cmd
           logger_info = %x(#{cmd})
           ret = $?.exitstatus
@@ -97,7 +99,7 @@ module CiCd
           end
           ret
         else
-          raise "Cannot change into 'chef' directory"
+          raise "Cannot change into '#{ENV['REPO_DIR']}' directory"
         end
       end
 
