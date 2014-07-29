@@ -88,12 +88,13 @@ module CiCd
         unless ENV.has_key?('BUILD_STORE')
           @vars[:build_store] = File.join(ENV['WORKSPACE'],'latest')
         end
-        @vars[:build_pkg]   = File.join(local['artifacts'],@vars[:build_rel]+'.tar.bz2')
+        @vars[:build_ext]   = 'tar.bz2'
+        @vars[:build_pkg]   = File.join(local['artifacts'],@vars[:build_rel]+".#{@vars[:build_ext]}")
         [ :build_chk, :build_mff, :build_mdf ].each do |file|
           @vars[file] = File.join(local['artifacts'],File.basename(@vars[file]))
         end
         ret = getLatest()
-        @vars[:latest_pkg]= "#{@vars[:build_store]}/#{@vars[:build_rel]}.tar.bz2"
+        @vars[:latest_pkg]= "#{@vars[:build_store]}/#{@vars[:build_rel]}.#{@vars[:build_ext]}"
         @vars[:return_code] = ret
       end
 
