@@ -93,8 +93,20 @@ module CiCd
         [ :build_chk, :build_mff, :build_mdf ].each do |file|
           @vars[file] = File.join(local['artifacts'],File.basename(@vars[file]))
         end
-        ret = getLatest()
         @vars[:latest_pkg]= "#{@vars[:build_store]}/#{@vars[:build_rel]}.#{@vars[:build_ext]}"
+
+        artifacts = []
+        scripts_glob = File.join(ENV['WORKSPACE'],ENV['REPO_DIR'], 'scripts','*')
+        Dir.glob(scripts_glob).each do |script|
+          key    = "#{@vars[:project_name]}/#{@vars[:variant]}/#{@vars[:build_nam]}/#{File.basename(script)}"
+          # Store the artifact - be sure to inherit possible overrides in pkg name and ext but dictate the drawer!
+          artifacts << {
+              key:        key,
+              data:       {:file => script},
+          }
+        end
+        @vars[:artifacts] = artifacts
+        ret = getLatest()
         @vars[:return_code] = ret
       end
 
