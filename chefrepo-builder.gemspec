@@ -18,7 +18,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ['lib']
 
   gem.add_dependency 'cicd-builder', '>= 0.9.13'
-  gem.add_dependency 'json', '= 1.7.7'
+  gem.add_dependency 'json', '= 1.8.1'
 
   gem.add_development_dependency 'bundler', '~> 1.0'
   gem.add_development_dependency 'rake', '~> 10.3'
