@@ -6,7 +6,7 @@ module CiCd
       #   remove_const c if const_defined?(c)
       # end
 
-      VERSION  = '0.9.19'
+      VERSION  = '0.9.20'
       MAJOR, MINOR, TINY = VERSION.split('.')
       PATCH = TINY
     end
