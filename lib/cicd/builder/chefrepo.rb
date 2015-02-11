@@ -8,45 +8,45 @@ module CiCd
 
     require 'cicd/builder/chefrepo/version'
 
-    #noinspection ALL
-    class ChefRepoBuilder < BuilderBase
+    module ChefRepo
+      class Runner < BuilderBase
 
-      def initialize()
-        super
-        @default_options[:builder] = VERSION
-      end
+        def initialize()
+          super
+          @default_options[:builder] = VERSION
+        end
 
-      # ---------------------------------------------------------------------------------------------------------------
-      def getBuilderVersion
-        {
-            version:  VERSION,
-            major:    MAJOR,
-            minor:    MINOR,
-            patch:    PATCH,
-        }
-      end
+        # ---------------------------------------------------------------------------------------------------------------
+        def getBuilderVersion
+          {
+              version:  VERSION,
+              major:    MAJOR,
+              minor:    MINOR,
+              patch:    PATCH,
+          }
+        end
 
-      # ---------------------------------------------------------------------------------------------------------------
-      def checkEnvironment()
-        # We fake some of the keys that the will need later ...
-        faked = {}
-        %w(VERSION RELEASE).each do |key|
-          unless ENV.has_key?(key)
-            ENV[key]="faked"
-            faked[key] = true
+        # ---------------------------------------------------------------------------------------------------------------
+        def checkEnvironment()
+          # We fake some of the keys that the will need later ...
+          faked = {}
+          %w(VERSION RELEASE).each do |key|
+            unless ENV.has_key?(key)
+              ENV[key]='faked'
+              faked[key] = true
+            end
           end
+          ret = super
+          faked.each do |k,v|
+            ENV.delete k
+          end
+          ret
         end
-        ret = super
-        faked.each do |k,v|
-          ENV.delete k
-        end
-        ret
-      end
 
-      # ---------------------------------------------------------------------------------------------------------------
-      def run()
-        $stdout.write("ChefRepoBuilder v#{CiCd::Builder::ChefRepo::VERSION}\n")
-        @default_options[:env_keys] = %w(
+        # ---------------------------------------------------------------------------------------------------------------
+        def setup()
+          $stdout.write("ChefRepoBuilder v#{CiCd::Builder::ChefRepo::VERSION}\n")
+          @default_options[:env_keys] << %w(
 																			JENKINS_HOME
 																			BUILD_NUMBER
                                       JOB_NAME
@@ -54,87 +54,96 @@ module CiCd
 
 																			PROJECT_NAME
                                       REPO_DIR
-                                      REPO_PARTS
 
                                       VERSION
                                       RELEASE
 
 																			AWS_S3_BUCKET
 																		)
-        @default_options[:gen] = '1.0.0'
-        if 0 == super
-          # noop
+          # @default_options[:gen] = '1.0.0'
+          super
         end
 
-        @vars[:return_code]
-      end
+        # ---------------------------------------------------------------------------------------------------------------
+        def getVars()
+          super
+          @vars[:return_code]
+        end
 
-      # ---------------------------------------------------------------------------------------------------------------
-      def getVars()
-        super
-        @vars[:return_code]
-      end
+        # ---------------------------------------------------------------------------------------------------------------
+        def prepareBuild()
+          ret = super
+          if ret == 0
+            unless ENV.has_key?('BUILD_STORE')
+              @vars[:build_store] = File.join(ENV['WORKSPACE'],'latest')
+            end
+            @vars[:build_ext] = 'tar.bz2'
+            @vars[:build_pkg] = File.join(@vars[:local_dirs]['artifacts'],@vars[:build_rel]+".#{@vars[:build_ext]}")
+            [ :build_chk, :build_mff, :build_mdf ].each do |file|
+              @vars[file] = File.join(@vars[:local_dirs]['artifacts'],File.basename(@vars[file]))
+            end
+            @vars[:latest_pkg]= "#{@vars[:build_store]}/#{@vars[:build_rel]}.#{@vars[:build_ext]}"
 
-      # ---------------------------------------------------------------------------------------------------------------
-      def prepareBuild()
-        super
-        local = {}
-        %w(artifacts latest).each do |dir|
-          local[dir] = "#{ENV['WORKSPACE']}/#{dir}"
-          unless File.directory?(dir)
-            Dir.mkdir(dir)
+            artifacts     = []
+            scripts       = File.join(ENV['WORKSPACE'], ENV['REPO_DIR'], 'scripts', '')
+            scripts_glob  = File.join(scripts,'**','**')
+            Dir.glob(scripts_glob).each do |script|
+              if File.file?(script)
+                addArtifact(artifacts, script, scripts)
+              end
+            end
+            @vars[:artifacts] = artifacts
+            ret = getLatest()
           end
+          @vars[:return_code] = ret
         end
-        unless ENV.has_key?('BUILD_STORE')
-          @vars[:build_store] = File.join(ENV['WORKSPACE'],'latest')
-        end
-        @vars[:build_ext]   = 'tar.bz2'
-        @vars[:build_pkg]   = File.join(local['artifacts'],@vars[:build_rel]+".#{@vars[:build_ext]}")
-        [ :build_chk, :build_mff, :build_mdf ].each do |file|
-          @vars[file] = File.join(local['artifacts'],File.basename(@vars[file]))
-        end
-        @vars[:latest_pkg]= "#{@vars[:build_store]}/#{@vars[:build_rel]}.#{@vars[:build_ext]}"
 
-        artifacts = []
-        scripts_glob = File.join(ENV['WORKSPACE'],ENV['REPO_DIR'], 'scripts','*')
-        Dir.glob(scripts_glob).each do |script|
-          key    = "#{@vars[:project_name]}/#{@vars[:variant]}/#{@vars[:build_nam]}/#{File.basename(script)}"
-          # Store the artifact - be sure to inherit possible overrides in pkg name and ext but dictate the drawer!
-          artifacts << {
-              key:        key,
-              data:       {:file => script},
-          }
-        end
-        @vars[:artifacts] = artifacts
-        ret = getLatest()
-        @vars[:return_code] = ret
-      end
+        # ---------------------------------------------------------------------------------------------------------------
+        def packageBuild()
+          # excludes=%w(*.iml *.txt *.sh *.md .gitignore .editorconfig .jshintrc *.deprecated adminer doc)
+          # excludes = excludes.map{ |e| "--exclude=#{@vars[:build_nam]}/#{e}" }.join(' ')
 
-      # ---------------------------------------------------------------------------------------------------------------
-      def packageBuild()
-        # excludes=%w(*.iml *.txt *.sh *.md .gitignore .editorconfig .jshintrc *.deprecated adminer doc)
-        # excludes = excludes.map{ |e| "--exclude=#{@vars[:build_nam]}/#{e}" }.join(' ')
-        raise "Not in WORKSPACE?" unless Dir.pwd == ENV['WORKSPACE']
-
-        Dir.chdir ENV['REPO_DIR']
-        if Dir.pwd == File.join(ENV['WORKSPACE'], ENV['REPO_DIR'])
-          cmd = %(tar jcvf #{@vars[:build_pkg]} #{ENV['REPO_PARTS']} 2>&1)
-          @logger.info cmd
-          logger_info = %x(#{cmd})
-          ret = $?.exitstatus
-          @logger.info logger_info
-          lines = logger_info.split("\n").map{ |line| line.split(/\s+/)[1] }
-          IO.write @vars[:build_mff], lines.join("\n")
-          FileUtils.rmtree(@vars[:build_dir])
-          unless ret == 0
-            FileUtils.rm_f(@vars[:build_mff])
+          if isSameDirectory(Dir.pwd, ENV['WORKSPACE'])
+            Dir.chdir ENV['REPO_DIR']
+            if isSameDirectory(Dir.pwd, File.join(ENV['WORKSPACE'], ENV['REPO_DIR']))
+              if ENV.has_key?('REPO_PARTS') and not ENV['REPO_PARTS'].empty?
+                cmd = %(tar jcvf #{@vars[:build_pkg]} #{ENV['REPO_PARTS']} 2>&1)
+                @logger.info cmd
+                logger_info = %x(#{cmd})
+                @vars[:return_code] = $?.exitstatus
+                if @vars[:return_code] == 0
+                  @logger.info logger_info
+                  lines = logger_info.split("\n").map { |line| line.split(/\s+/)[1] }
+                  begin
+                    unless IO.write @vars[:build_mff], lines.join("\n") > 0
+                      @logger.error "Nothing was written to manifest '#{@vars[:build_mff]}'"
+                      @vars[:return_code] = -1
+                    end
+                  rescue
+                    @logger.error "Failed to write manifest '#{@vars[:build_mff]}'"
+                    @vars[:return_code] = -1
+                  end
+                  FileUtils.rmtree(@vars[:build_dir])
+                else
+                  @logger.error "Failed to package '#{@vars[:build_pkg]}': #{logger_info}"
+                end
+                unless @vars[:return_code] == 0
+                  @logger.warn "Remove manifest '#{@vars[:build_mff]}' due to error"
+                  FileUtils.rm_f(@vars[:build_mff])
+                end
+              end
+            else
+              @logger.error "Cannot change into '#{ENV['REPO_DIR']}' directory"
+              @vars[:return_code] = -96
+            end
+          else
+            @logger.error "Not in WORKSPACE? '#{pwd}' does not match WORKSPACE='#{workspace}'"
+            @vars[:return_code] = -95
           end
-          ret
-        else
-          raise "Cannot change into '#{ENV['REPO_DIR']}' directory"
+
+          @vars[:return_code]
         end
       end
-
     end
 
   end
