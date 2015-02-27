@@ -30,4 +30,4 @@ $:.unshift(add_path)
 require 'cicd/builder/chefrepo'
 
 # =====================================================================================================================
-exit CiCd::Builder::ChefRepoBuilder.new().run()
+exit CiCd::Builder::ChefRepo::Runner.new().run()

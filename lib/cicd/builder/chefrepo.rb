@@ -30,7 +30,7 @@ module CiCd
         def checkEnvironment()
           # We fake some of the keys that the will need later ...
           faked = {}
-          %w(VERSION RELEASE).each do |key|
+          %w(VERSION RELEASE VARIANT).each do |key|
             unless ENV.has_key?(key)
               ENV[key]='faked'
               faked[key] = true
@@ -57,18 +57,17 @@ module CiCd
 
                                       VERSION
                                       RELEASE
-
-																			AWS_S3_BUCKET
+                                      VARIANT
 																		)
           # @default_options[:gen] = '1.0.0'
           super
         end
 
-        # ---------------------------------------------------------------------------------------------------------------
-        def getVars()
-          super
-          @vars[:return_code]
-        end
+        # # ---------------------------------------------------------------------------------------------------------------
+        # def getVars()
+        #   super
+        #   @vars[:return_code]
+        # end
 
         # ---------------------------------------------------------------------------------------------------------------
         def prepareBuild()
@@ -78,11 +77,11 @@ module CiCd
               @vars[:build_store] = File.join(ENV['WORKSPACE'],'latest')
             end
             @vars[:build_ext] = 'tar.bz2'
-            @vars[:build_pkg] = File.join(@vars[:local_dirs]['artifacts'],@vars[:build_rel]+".#{@vars[:build_ext]}")
+            @vars[:build_pkg] = File.join(@vars[:local_dirs]['artifacts'],@vars[:build_nmn]+".#{@vars[:build_ext]}")
             [ :build_chk, :build_mff, :build_mdf ].each do |file|
               @vars[file] = File.join(@vars[:local_dirs]['artifacts'],File.basename(@vars[file]))
             end
-            @vars[:latest_pkg]= "#{@vars[:build_store]}/#{@vars[:build_rel]}.#{@vars[:build_ext]}"
+            @vars[:latest_pkg]= "#{@vars[:build_store]}/#{@vars[:build_nmn]}.#{@vars[:build_ext]}"
 
             artifacts     = []
             scripts       = File.join(ENV['WORKSPACE'], ENV['REPO_DIR'], 'scripts', '')
@@ -100,6 +99,7 @@ module CiCd
 
         # ---------------------------------------------------------------------------------------------------------------
         def packageBuild()
+          @logger.step __method__.to_s
           # excludes=%w(*.iml *.txt *.sh *.md .gitignore .editorconfig .jshintrc *.deprecated adminer doc)
           # excludes = excludes.map{ |e| "--exclude=#{@vars[:build_nam]}/#{e}" }.join(' ')
 
@@ -112,16 +112,16 @@ module CiCd
                 logger_info = %x(#{cmd})
                 @vars[:return_code] = $?.exitstatus
                 if @vars[:return_code] == 0
-                  @logger.info logger_info
+                  @logger.debug logger_info
                   lines = logger_info.split("\n").map { |line| line.split(/\s+/)[1] }
                   begin
-                    unless IO.write @vars[:build_mff], lines.join("\n") > 0
+                    unless IO.write(@vars[:build_mff], lines.join("\n")) > 0
                       @logger.error "Nothing was written to manifest '#{@vars[:build_mff]}'"
-                      @vars[:return_code] = -1
+                      @vars[:return_code] = Errors::MANIFEST_EMPTY
                     end
-                  rescue
-                    @logger.error "Failed to write manifest '#{@vars[:build_mff]}'"
-                    @vars[:return_code] = -1
+                  rescue Exception => e
+                    @logger.error "Failed to write manifest: #{e.class.name} #{e.message} ('#{@vars[:build_mff]}')"
+                    @vars[:return_code] = Errors::MANIFEST_WRITE
                   end
                   FileUtils.rmtree(@vars[:build_dir])
                 else
@@ -134,11 +134,11 @@ module CiCd
               end
             else
               @logger.error "Cannot change into '#{ENV['REPO_DIR']}' directory"
-              @vars[:return_code] = -96
+              @vars[:return_code] = Errors::REPO_DIR
             end
           else
             @logger.error "Not in WORKSPACE? '#{pwd}' does not match WORKSPACE='#{workspace}'"
-            @vars[:return_code] = -95
+            @vars[:return_code] = Errors::WORKSPACE_DIR
           end
 
           @vars[:return_code]
