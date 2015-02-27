@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.name          = 'chefrepo-builder'
   gem.version       = CiCd::Builder::ChefRepo::VERSION
   gem.summary       = 'Jenkins builder task for Chef repo CI/CD'
-  gem.description   = 'Jenkins builder task for Chef repo CI/CD'
+  gem.description   = 'Jenkins builder task for Chef repository for Continuous Integration/Continuous Delivery artifact promotion style deployments'
   gem.license       = 'Apachev2'
   gem.authors       = ['Christo De Lange']
   gem.email         = 'rubygems@dldinternet.com'
@@ -17,7 +17,7 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ['lib']
 
-  gem.add_dependency 'cicd-builder', '>= 0.9.14'
+  gem.add_dependency 'cicd-builder', '= 0.9.27'
   gem.add_dependency 'json', '= 1.8.1'
 
   gem.add_development_dependency 'bundler', '>= 1.6', '< 1.7'
