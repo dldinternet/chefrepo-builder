@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    chefrepo-builder (0.9.22)
+    chefrepo-builder (0.9.23)
       cicd-builder (= 0.9.27)
       json (= 1.8.1)
 
