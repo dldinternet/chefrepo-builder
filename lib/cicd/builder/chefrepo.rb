@@ -58,6 +58,7 @@ module CiCd
                                       VERSION
                                       RELEASE
                                       VARIANT
+                                      BRANCH
 																		)
           # @default_options[:gen] = '1.0.0'
           super
