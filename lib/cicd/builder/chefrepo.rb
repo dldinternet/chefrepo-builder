@@ -9,6 +9,7 @@ module CiCd
     require 'cicd/builder/chefrepo/version'
 
     module ChefRepo
+      CLASS = 'CiCd::Builder::ChefRepo'
       class Runner < BuilderBase
 
         def initialize()
@@ -28,6 +29,7 @@ module CiCd
 
         # ---------------------------------------------------------------------------------------------------------------
         def checkEnvironment()
+          @logger.step CLASS+'::'+__method__.to_s
           # We fake some of the keys that the will need later ...
           faked = {}
           %w(VERSION RELEASE VARIANT).each do |key|
@@ -72,6 +74,7 @@ module CiCd
 
         # ---------------------------------------------------------------------------------------------------------------
         def prepareBuild()
+          @logger.step CLASS+'::'+__method__.to_s
           ret = super
           if ret == 0
             unless ENV.has_key?('BUILD_STORE')
@@ -100,7 +103,7 @@ module CiCd
 
         # ---------------------------------------------------------------------------------------------------------------
         def packageBuild()
-          @logger.step __method__.to_s
+          @logger.step CLASS+'::'+__method__.to_s
           # excludes=%w(*.iml *.txt *.sh *.md .gitignore .editorconfig .jshintrc *.deprecated adminer doc)
           # excludes = excludes.map{ |e| "--exclude=#{@vars[:build_nam]}/#{e}" }.join(' ')
 
